@@ -1,15 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../supabaseClient';
 import { updateProfile, fetchProfile } from '../../api';
 
 function Profile() {
   const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
-  const [profileImg, setProfileImg] = useState("/img1.png");
-  const [tagInput, setTagInput] = useState("");
-  const [customTags, setCustomTags] = useState([]);
-
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -17,7 +11,6 @@ function Profile() {
     description: '',
     selectedCategories: [],
     specificSkills: '',
-    customSkill: '' // We will use this for your Socials/URL
   });
 
   const categories = [
@@ -25,75 +18,59 @@ function Profile() {
     "Trades & Finances", "Health & Wellness", "Humanities & Languages",
     "Culinary & Hospitality", "Realty & Planning", "Legal & Advocacy", "Lifestyle & Hobbies"
   ];
-  const addTag = (e) => {
-    if (e.key === 'Enter' && tagInput.trim() !== "") {
-      e.preventDefault();
-      setCustomTags([...customTags, tagInput.trim()]);
-      setTagInput("");
-    }
-  };
-
-  const handleImgChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setProfileImg(URL.createObjectURL(e.target.files[0]));
-    }
-  };
-
-  const handleSave = (e) => {
-    e.preventDefault();
 
   // --- 1. LOAD PROFILE DATA ON MOUNT ---
- useEffect(() => {
-  const loadProfile = async () => {
+  useEffect(() => {
+    const loadProfile = async () => {
+      setIsLoading(true);
+      try {
+        const data = await fetchProfile(); 
+        if (data) {
+          setFormData({
+            firstName: data.first_name || '',
+            lastName: data.last_name || '',
+            ageGroup: data.age_group || '',
+            description: data.bio || '',                 
+            selectedCategories: data.knowledge_areas || [], 
+            specificSkills: data.specific_expertise || '', 
+          });
+          setIsSaved(true); 
+        }
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadProfile();
+  }, []);
 
+  // --- 2. SAVE PROFILE DATA ---
+  const handleSave = async (e) => {
+    e.preventDefault();
     setIsLoading(true);
-    try {
-      const data = await fetchProfile(); 
-      if (data) {
-        setFormData({
-          firstName: data.first_name || '',
-          lastName: data.last_name || '',
-          ageGroup: data.age_group || '',
-          description: data.bio || '',                 // Use 'bio' from DB
-          selectedCategories: data.knowledge_areas || [], // Use 'knowledge_areas' from DB
-          specificSkills: data.specific_expertise || '', // Us
-        });
 
-        // 👈 ADD THIS LINE: If data exists, start in the "Synced" view
-        setIsSaved(true); 
+    const profileUpdates = {
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      age_group: formData.ageGroup,
+      categories: formData.selectedCategories,
+      specific_skills: formData.specificSkills, 
+      description: formData.description
+    };
+
+    try {
+      const success = await updateProfile(profileUpdates);
+      if (success) {
+        setIsSaved(true);
       }
     } catch (error) {
-      console.error("Error fetching profile:", error);
+      console.error("Save failed:", error);
+      alert("Failed to save profile. Please check your connection.");
     } finally {
       setIsLoading(false);
     }
   };
-  loadProfile();
-}, []);
-  // --- 2. SAVE PROFILE DATA TO BACKEND ---
- const handleSave = async (e) => {
-  e.preventDefault();
-  setIsLoading(true);
-
-  // Package the data to match the backend destructuring
-  const profileUpdates = {
-    first_name: formData.firstName,
-    last_name: formData.lastName,
-    age_group: formData.ageGroup,
-    categories: formData.selectedCategories, // Array matches text[]
-    specific_skills: formData.specificSkills,
-    description: formData.description
-  };
-
-  try {
-    const success = await updateProfile(profileUpdates);
-    if (success) setIsSaved(true);
-  } catch (error) {
-    console.error("Save failed:", error);
-  } finally {
-    setIsLoading(false);
-  }
-};
 
   const toggleCategory = (cat) => {
     setFormData(prev => ({
@@ -107,7 +84,7 @@ function Profile() {
   const styles = {
     pageWrapper: {
       minHeight: '100vh', width: '100vw', display: 'flex', justifyContent: 'center',
-      alignItems: 'center', padding: '40px 20px', 
+      alignItems: 'center', padding: '40px 20px', boxSizing: 'border-box',
       fontFamily: "'Quicksand', sans-serif",
       background: 'linear-gradient(135deg, #e0d7ff 0%, #fdeff4 100%)', margin: 0,
       position: 'relative', overflowX: 'hidden'
@@ -118,7 +95,7 @@ function Profile() {
       justifyContent: 'space-around', alignContent: 'space-around', opacity: '0.15'
     },
     individualFlower: (rotate, size) => ({
-      fontSize: size || '40px', transform: `rotate(${rotate}deg)`, margin: '30px', filter: 'grayscale(0.5)'
+      fontSize: size || '40px', transform: `rotate(${rotate}deg)`, margin: '30px', display: 'inline-block'
     }),
     loadingOverlay: {
       position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
@@ -131,123 +108,82 @@ function Profile() {
       objectFit: 'cover', animation: 'spin 2s linear infinite', marginBottom: '20px',
       border: '3px solid #9b59b6'
     },
-    loadingText: { fontSize: '24px', fontWeight: 'bold', color: '#9b59b6' },
- HEAD,
-
-
     mainContainer: {
       background: 'white', borderRadius: '40px', maxWidth: '800px', width: '100%',
-      padding: '50px', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.1)',
-      position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center',
-      transition: 'transform 0.3s ease', 
+      padding: '50px', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.1)', boxSizing: 'border-box',
+      position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center'
     },
-    logoContainer: { position: 'relative', cursor: 'pointer' },
-    logoImg: {
-      width: '140px', height: '140px', borderRadius: '50%',
-      marginBottom: '20px', boxShadow: '0 12px 24px rgba(155, 89, 182, 0.3)',
-      objectFit: 'cover', border: '5px solid white', transition: '0.3s'
-    },
-    uploadOverlay: {
-      position: 'absolute', bottom: 25, right: 5, background: '#9b59b6',
-      borderRadius: '50%', width: '35px', height: '35px', display: 'flex',
-      justifyContent: 'center', alignItems: 'center', color: 'white', border: '2px solid white'
-    },
-    sectionTitle: { color: '#6d5c7e', marginBottom: '15px', fontSize: '22px', fontWeight: '800', alignSelf: 'flex-start', borderLeft: '5px solid #9b59b6', paddingLeft: '15px' },
     input: { 
       width: '100%', padding: '16px', margin: '10px 0', borderRadius: '15px', border: '2px solid #eee', 
-      boxSizing: 'border-box', fontSize: '16px', outline: 'none', fontFamily: "'Quicksand', sans-serif",
-      transition: 'border-color 0.3s'
+      boxSizing: 'border-box', fontSize: '16px', outline: 'none', fontFamily: 'inherit'
     },
-    chipContainer: { display: 'flex', flexWrap: 'wrap', gap: '10px', margin: '15px 0' },
+    chipContainer: { display: 'flex', flexWrap: 'wrap', gap: '10px', margin: '15px 0', justifyContent: 'center' },
     chip: (isSelected) => ({
       padding: '10px 20px', borderRadius: '25px', cursor: 'pointer', border: 'none',
       background: isSelected ? 'linear-gradient(to right, #9b59b6, #e91e63)' : '#f3f0ff',
-      color: isSelected ? 'white' : '#6d5c7e', fontWeight: 'bold', transition: '0.3s', fontSize: '14px',
-      transform: isSelected ? 'scale(1.05)' : 'scale(1)' 
+      color: isSelected ? 'white' : '#6d5c7e', fontWeight: 'bold', transition: '0.3s'
     }),
     mainButton: { 
       width: '100%', padding: '18px', background: 'linear-gradient(to right, #9b59b6, #e91e63)', 
       color: 'white', border: 'none', borderRadius: '35px', fontSize: '20px', fontWeight: 'bold', 
-      cursor: 'pointer', marginTop: '30px', boxShadow: '0 8px 20px rgba(233, 30, 99, 0.2)',
-      transition: '0.3s'
-    },
-    summaryLabel: { fontWeight: 'bold', color: '#9b59b6', marginTop: '15px', fontSize: '18px' }
+      cursor: 'pointer', marginTop: '30px'
+    }
   };
 
   const flowers = ["🌸", "🌺", "🌼", "🌹", "🌷", "💐", "🌻"];
 
   return (
     <div style={styles.pageWrapper}>
-      <style>
-        {` 
-          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } 
-          input:focus { border-color: #9b59b6 !important; }
-          .main-card:hover { transform: translateY(-5px); }
-        `}
-      </style>
+      {/* Dynamic Keyframes for the spinner */}
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
 
       {isLoading && (
         <div style={styles.loadingOverlay}>
-          <img src={profileImg} style={styles.spinningLogo} alt="loading" />
-          <div style={styles.loadingText}>Updating your Path...</div>
+          <img src="/img1.png" style={styles.spinningLogo} alt="loading" />
+          <p style={{color: '#9b59b6', fontWeight: 'bold'}}>Syncing your Path...</p>
         </div>
       )}
 
       <div style={styles.flowerLayer}>
-        {Array.from({ length: 30 }).map((_, i) => (
-          <span key={i} style={styles.individualFlower(i * 45, (i % 3 === 0 ? '60px' : '30px'))}>
+        {Array.from({ length: 20 }).map((_, i) => (
+          <span key={i} style={styles.individualFlower(i * 45, '40px')}>
             {flowers[i % flowers.length]}
           </span>
         ))}
       </div>
 
-      <div style={styles.mainContainer} className="main-card">
-        <div style={styles.logoContainer} onClick={() => document.getElementById('fileInput').click()}>
-          <img src={profileImg} alt="Logo" style={styles.logoImg} />
-          <div style={styles.uploadOverlay}>📸</div>
-          <input id="fileInput" type="file" hidden onChange={handleImgChange} accept="image/*" />
-        </div>
-        
+      <div style={styles.mainContainer}>
         {isSaved ? (
           <div style={{width: '100%', textAlign: 'center'}}>
-            <h1 style={{fontSize: '36px', color: '#6d5c7e'}}>Profile Synced! ✨</h1>
-            <div style={{textAlign: 'left', background: '#fcfaff', padding: '30px', borderRadius: '20px', marginTop: '20px'}}>
-              <p style={styles.summaryLabel}>Name</p>
-              <p>{formData.firstName} {formData.lastName}</p>
-              <p style={styles.summaryLabel}>Knowledge Areas</p>
-              <div style={styles.chipContainer}>
-                {formData.selectedCategories.map(c => <span key={c} style={styles.chip(true)}>{c}</span>)}
-                {customTags.map((tag, i) => <span key={i} style={{...styles.chip(true), background: '#6d5c7e'}}>{tag}</span>)}
-              </div>
-              {formData.customSkill && (
-                <>
-                  <p style={styles.summaryLabel}>Links</p>
-                  <p>{formData.customSkill}</p>
-                </>
-              )}
+            <h1 style={{color: '#6d5c7e'}}>Profile Synced! ✨</h1>
+            <div style={{textAlign: 'left', background: '#fcfaff', padding: '20px', borderRadius: '15px'}}>
+              <p><strong>Name:</strong> {formData.firstName} {formData.lastName}</p>
+              <p><strong>Role:</strong> {formData.ageGroup}</p>
+              <p><strong>Expertise:</strong> {formData.specificSkills}</p>
+              <p><strong>Bio:</strong> {formData.description}</p>
             </div>
             <button style={styles.mainButton} onClick={() => setIsSaved(false)}>Edit Profile</button>
           </div>
         ) : (
           <form style={{ width: '100%' }} onSubmit={handleSave}>
-            <h1 style={{textAlign: 'center', color: '#6d5c7e', marginBottom: '30px'}}>Your BridgePath Profile</h1>
+            <h2 style={{textAlign: 'center', color: '#6d5c7e'}}>Your BridgePath Profile</h2>
             
-            <h3 style={styles.sectionTitle}>Basic Information</h3>
-            <div style={{display: 'flex', gap: '15px'}}>
+            <div style={{display: 'flex', gap: '10px'}}>
               <input style={styles.input} placeholder="First Name" value={formData.firstName} onChange={(e) => setFormData({...formData, firstName: e.target.value})} required />
               <input style={styles.input} placeholder="Last Name" value={formData.lastName} onChange={(e) => setFormData({...formData, lastName: e.target.value})} required />
             </div>
             
             <select style={styles.input} value={formData.ageGroup} onChange={(e) => setFormData({...formData, ageGroup: e.target.value})} required>
-              <option value="">Select User Age Group</option>
-              <option value="Child (0-12)">Child (0-12)</option>
-              <option value="Highschool">Highschool Student</option>
+              <option value="">Select Age Group</option>
+              <option value="Child">Child (0-12)</option>
+              <option value="HS Student">Highschool Student</option>
               <option value="Young Adult">Young Adult</option>
               <option value="Professional">Professional</option>
               <option value="Senior">Senior</option>
             </select>
 
-            <h3 style={styles.sectionTitle}>Area of Expertise</h3>
             <div style={styles.chipContainer}>
               {categories.map(cat => (
                 <button type="button" key={cat} style={styles.chip(formData.selectedCategories.includes(cat))} onClick={() => toggleCategory(cat)}>
@@ -256,25 +192,10 @@ function Profile() {
               ))}
             </div>
 
-            <input style={styles.input} placeholder="Specifically, what can you teach?" value={formData.specificSkills} onChange={(e) => setFormData({...formData, specificSkills: e.target.value})} />
-            
-            <h3 style={styles.sectionTitle}>Socials/Profile URL</h3>
-            <textarea 
-              style={{...styles.input, height: '100px', resize: 'none'}} 
-              placeholder="LinkedIn, Twitter, etc." 
-              value={formData.customSkill} // FIXED: Used customSkill instead of description
-              onChange={(e) => setFormData({...formData, customSkill: e.target.value})} 
-            />
-            
-            <h3 style={styles.sectionTitle}>More About You!</h3>
-            <textarea 
-              style={{...styles.input, height: '100px', resize: 'none'}} 
-              placeholder="A brief professional bio..." 
-              value={formData.description} 
-              onChange={(e) => setFormData({...formData, description: e.target.value})} 
-            />
+            <input style={styles.input} placeholder="Specific Expertise (e.g. React, Carpentry)" value={formData.specificSkills} onChange={(e) => setFormData({...formData, specificSkills: e.target.value})} />
+            <textarea style={{...styles.input, height: '80px'}} placeholder="Short Bio" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
 
-            <button type="submit" style={styles.mainButton} className="save-btn">Save My Profile ✨</button>
+            <button type="submit" style={styles.mainButton}>Save My Profile ✨</button>
           </form>
         )}
       </div>
