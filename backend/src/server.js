@@ -51,19 +51,15 @@ app.get("/api/profile", requireAuth, async (req, res) => {
   const { data, error } = await sb.from("profiles").select("*").eq("user_id", req.user.id).single();
   if (error && error.code !== 'PGRST116') return res.status(400).json({ error: error.message });
   res.json({ profile: data });
-});
-
-app.post("/api/profile", requireAuth, async (req, res) => {
+});app.post("/api/profile", requireAuth, async (req, res) => {
   const {
-    firstName,
-    lastName,
-    ageGroup,
-    knowledgeAreas,
-    specificExpertise,
-    bio,
+    first_name,
+    last_name,
+    age_group,
+    categories,       // This MUST be an array
+    specific_skills,
+    description,
   } = req.body;
-
-  if (!ageGroup) return res.status(400).json({ error: "ageGroup is required" });
 
   const sb = supabaseAsUser(req.accessToken);
 
@@ -71,24 +67,25 @@ app.post("/api/profile", requireAuth, async (req, res) => {
     .from("profiles")
     .upsert({
       user_id: req.user.id,
-      first_name: firstName,
-      last_name: lastName,
-      age_group: ageGroup,
-      knowledge_areas: knowledgeAreas,
-      specific_expertise: specificExpertise,
-      bio,
+      first_name: first_name || "",
+      last_name: last_name || "",
+      age_group: age_group || "Other",
+      knowledge_areas: Array.isArray(categories) ? categories : [], // 👈 Force it to be an array
+      specific_expertise: specific_skills || "",
+      bio: description || "",
+      updated_at: new Date()
     },
-    { 
-      onConflict: 'user_id' // 👈 ADD THIS LINE
-    })
-    .select() // 👈 You MUST add .select() to get data back
-    .single(); // 👈 This gives you the object directly instead of an array
+    { onConflict: 'user_id' })
+    .select()
+    .single();
 
-  if (error) return res.status(400).json({ error: error.message });
+  if (error) {
+    console.error("422 Debug - Supabase Error:", error.message);
+    return res.status(422).json({ error: error.message }); // 👈 Standard for data errors
+  }
 
-  res.json({ profile: data }); // Now data is the saved object
+  res.json({ profile: data });
 });
-
 app.get("/api/test-save", async (req, res) => {
   const sb = getSupabase();
   const { data, error } = await sb

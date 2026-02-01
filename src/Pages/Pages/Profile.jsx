@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../../supabaseClient';
+import { updateProfile, fetchProfile } from '../../api';
 
 function Profile() {
   const [isSaved, setIsSaved] = useState(false);
@@ -19,14 +21,57 @@ function Profile() {
     "Culinary & Hospitality", "Realty & Planning", "Legal & Advocacy", "Lifestyle & Hobbies"
   ];
 
-  const handleSave = (e) => {
-    e.preventDefault();
+  // --- 1. LOAD PROFILE DATA ON MOUNT ---
+ useEffect(() => {
+  const loadProfile = async () => {
     setIsLoading(true);
-    setTimeout(() => {
+    try {
+      const data = await fetchProfile(); 
+      if (data) {
+        setFormData({
+          firstName: data.first_name || '',
+          lastName: data.last_name || '',
+          ageGroup: data.age_group || '',
+          description: data.bio || '',                 // Use 'bio' from DB
+          selectedCategories: data.knowledge_areas || [], // Use 'knowledge_areas' from DB
+          specificSkills: data.specific_expertise || '', // Us
+        });
+
+        // 👈 ADD THIS LINE: If data exists, start in the "Synced" view
+        setIsSaved(true); 
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+    } finally {
       setIsLoading(false);
-      setIsSaved(true);
-    }, 2000);
+    }
   };
+  loadProfile();
+}, []);
+  // --- 2. SAVE PROFILE DATA TO BACKEND ---
+ const handleSave = async (e) => {
+  e.preventDefault();
+  setIsLoading(true);
+
+  // Package the data to match the backend destructuring
+  const profileUpdates = {
+    first_name: formData.firstName,
+    last_name: formData.lastName,
+    age_group: formData.ageGroup,
+    categories: formData.selectedCategories, // Array matches text[]
+    specific_skills: formData.specificSkills,
+    description: formData.description
+  };
+
+  try {
+    const success = await updateProfile(profileUpdates);
+    if (success) setIsSaved(true);
+  } catch (error) {
+    console.error("Save failed:", error);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const toggleCategory = (cat) => {
     setFormData(prev => ({
@@ -38,7 +83,6 @@ function Profile() {
   };
 
   const styles = {
-    // --- MATCHING SIGN IN PAGE WRAPPER ---
     pageWrapper: {
       minHeight: '100vh', width: '100vw', display: 'flex', justifyContent: 'center',
       alignItems: 'center', padding: '40px 20px', 
@@ -60,15 +104,12 @@ function Profile() {
       display: 'flex', flexDirection: 'column', justifyContent: 'center',
       alignItems: 'center', zIndex: 10000,
     },
-    // --- UPDATED LOADING LOGO ---
     spinningLogo: { 
       width: '100px', height: '100px', borderRadius: '50%', 
       objectFit: 'cover', animation: 'spin 2s linear infinite', marginBottom: '20px',
       border: '3px solid #9b59b6'
     },
     loadingText: { fontSize: '24px', fontWeight: 'bold', color: '#9b59b6' },
-
-    // --- MAIN CONTENT CARD ---
     mainContainer: {
       background: 'white', borderRadius: '40px', maxWidth: '800px', width: '100%',
       padding: '50px', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.1)',
@@ -106,15 +147,13 @@ function Profile() {
         {` @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } `}
       </style>
 
-      {/* LOADING SCREEN WITH LOGO */}
       {isLoading && (
         <div style={styles.loadingOverlay}>
           <img src="/img1.png" style={styles.spinningLogo} alt="loading" />
-          <div style={styles.loadingText}>Updating your Path...</div>
+          <div style={styles.loadingText}>Syncing your Path...</div>
         </div>
       )}
 
-      {/* FLORAL BACKGROUND */}
       <div style={styles.flowerLayer}>
         {Array.from({ length: 30 }).map((_, i) => (
           <span key={i} style={styles.individualFlower(i * 45, (i % 3 === 0 ? '60px' : '30px'))}>
@@ -128,12 +167,10 @@ function Profile() {
         
         {isSaved ? (
           <div style={{width: '100%', textAlign: 'center'}}>
-            <h1 style={{fontSize: '36px', color: '#6d5c7e'}}>Profile Saved! ✨</h1>
+            <h1 style={{fontSize: '36px', color: '#6d5c7e'}}>Profile Synced! ✨</h1>
             <div style={{textAlign: 'left', background: '#fcfaff', padding: '30px', borderRadius: '20px', marginTop: '20px'}}>
               <p style={styles.summaryLabel}>Name</p>
               <p>{formData.firstName} {formData.lastName}</p>
-              <p style={styles.summaryLabel}>Group</p>
-              <p>{formData.ageGroup}</p>
               <p style={styles.summaryLabel}>Knowledge Areas</p>
               <div style={styles.chipContainer}>
                 {formData.selectedCategories.map(c => <span key={c} style={styles.chip(true)}>{c}</span>)}
@@ -153,11 +190,11 @@ function Profile() {
             
             <select style={styles.input} value={formData.ageGroup} onChange={(e) => setFormData({...formData, ageGroup: e.target.value})} required>
               <option value="">Select User Age Group</option>
-              <option value="Child (0-12)">Child (0-12) - Parent Managed</option>
+              <option value="Child (0-12)">Child (0-12)</option>
               <option value="Highschool">Highschool Student</option>
-              <option value="Young Adult">Post-Secondary / Young Adult</option>
-              <option value="Professional">Professional Adult</option>
-              <option value="Senior">Senior / Retired Specialist</option>
+              <option value="Young Adult">Young Adult</option>
+              <option value="Professional">Professional</option>
+              <option value="Senior">Senior</option>
             </select>
 
             <h3 style={styles.sectionTitle}>Expertise</h3>
