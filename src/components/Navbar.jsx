@@ -49,19 +49,19 @@ function Navbar() {
       ...(isActive && {
         background: 'linear-gradient(45deg, #ff00cc, #a64dff)',
         boxShadow: '0 0 15px rgba(255, 0, 204, 0.8), 0 0 5px rgba(255, 255, 255, 0.5)',
-        border: '2px solid white',
+        border: '2px solid black',
         transform: 'translateY(-2px)'
       })
     }),
     logoutBtn: {
       textDecoration: 'none',
-      color: 'white',
-      padding: '10px 20px',
-      borderRadius: '20px',
-      fontSize: '14px',
-      background: '#444',
-      marginLeft: '30px',
-      opacity: 0.8
+      color: 'black',
+      padding: '12px 24px',
+      borderRadius: '25px',
+      fontSize: '15px',
+      fontWeight: 'bold',
+      fontFamily: "'Quicksand', sans-serif",
+      transition: 'all 0.3s ease',
     }
   };
 

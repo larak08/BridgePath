@@ -3,6 +3,11 @@ import React, { useState } from 'react';
 function Profile() {
   const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  
+  const [profileImg, setProfileImg] = useState("/img1.png");
+  const [tagInput, setTagInput] = useState("");
+  const [customTags, setCustomTags] = useState([]);
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -10,7 +15,7 @@ function Profile() {
     description: '',
     selectedCategories: [],
     specificSkills: '',
-    customSkill: ''
+    customSkill: '' // We will use this for your Socials/URL
   });
 
   const categories = [
@@ -18,6 +23,20 @@ function Profile() {
     "Trades & Finances", "Health & Wellness", "Humanities & Languages",
     "Culinary & Hospitality", "Realty & Planning", "Legal & Advocacy", "Lifestyle & Hobbies"
   ];
+
+  const addTag = (e) => {
+    if (e.key === 'Enter' && tagInput.trim() !== "") {
+      e.preventDefault();
+      setCustomTags([...customTags, tagInput.trim()]);
+      setTagInput("");
+    }
+  };
+
+  const handleImgChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setProfileImg(URL.createObjectURL(e.target.files[0]));
+    }
+  };
 
   const handleSave = (e) => {
     e.preventDefault();
@@ -38,7 +57,6 @@ function Profile() {
   };
 
   const styles = {
-    // --- MATCHING SIGN IN PAGE WRAPPER ---
     pageWrapper: {
       minHeight: '100vh', width: '100vw', display: 'flex', justifyContent: 'center',
       alignItems: 'center', padding: '40px 20px', 
@@ -60,7 +78,6 @@ function Profile() {
       display: 'flex', flexDirection: 'column', justifyContent: 'center',
       alignItems: 'center', zIndex: 10000,
     },
-    // --- UPDATED LOADING LOGO ---
     spinningLogo: { 
       width: '100px', height: '100px', borderRadius: '50%', 
       objectFit: 'cover', animation: 'spin 2s linear infinite', marginBottom: '20px',
@@ -68,32 +85,41 @@ function Profile() {
     },
     loadingText: { fontSize: '24px', fontWeight: 'bold', color: '#9b59b6' },
 
-    // --- MAIN CONTENT CARD ---
     mainContainer: {
       background: 'white', borderRadius: '40px', maxWidth: '800px', width: '100%',
       padding: '50px', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.1)',
-      position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center'
+      position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center',
+      transition: 'transform 0.3s ease', 
     },
+    logoContainer: { position: 'relative', cursor: 'pointer' },
     logoImg: {
-      width: '120px', height: '120px', borderRadius: '50%',
-      marginBottom: '20px', boxShadow: '0 8px 16px rgba(155, 89, 182, 0.2)',
-      objectFit: 'cover', border: '3px solid white'
+      width: '140px', height: '140px', borderRadius: '50%',
+      marginBottom: '20px', boxShadow: '0 12px 24px rgba(155, 89, 182, 0.3)',
+      objectFit: 'cover', border: '5px solid white', transition: '0.3s'
+    },
+    uploadOverlay: {
+      position: 'absolute', bottom: 25, right: 5, background: '#9b59b6',
+      borderRadius: '50%', width: '35px', height: '35px', display: 'flex',
+      justifyContent: 'center', alignItems: 'center', color: 'white', border: '2px solid white'
     },
     sectionTitle: { color: '#6d5c7e', marginBottom: '15px', fontSize: '22px', fontWeight: '800', alignSelf: 'flex-start', borderLeft: '5px solid #9b59b6', paddingLeft: '15px' },
     input: { 
       width: '100%', padding: '16px', margin: '10px 0', borderRadius: '15px', border: '2px solid #eee', 
-      boxSizing: 'border-box', fontSize: '16px', outline: 'none', fontFamily: "'Quicksand', sans-serif"
+      boxSizing: 'border-box', fontSize: '16px', outline: 'none', fontFamily: "'Quicksand', sans-serif",
+      transition: 'border-color 0.3s'
     },
     chipContainer: { display: 'flex', flexWrap: 'wrap', gap: '10px', margin: '15px 0' },
     chip: (isSelected) => ({
       padding: '10px 20px', borderRadius: '25px', cursor: 'pointer', border: 'none',
       background: isSelected ? 'linear-gradient(to right, #9b59b6, #e91e63)' : '#f3f0ff',
-      color: isSelected ? 'white' : '#6d5c7e', fontWeight: 'bold', transition: '0.3s', fontSize: '14px'
+      color: isSelected ? 'white' : '#6d5c7e', fontWeight: 'bold', transition: '0.3s', fontSize: '14px',
+      transform: isSelected ? 'scale(1.05)' : 'scale(1)' 
     }),
     mainButton: { 
       width: '100%', padding: '18px', background: 'linear-gradient(to right, #9b59b6, #e91e63)', 
       color: 'white', border: 'none', borderRadius: '35px', fontSize: '20px', fontWeight: 'bold', 
-      cursor: 'pointer', marginTop: '30px', boxShadow: '0 8px 20px rgba(233, 30, 99, 0.2)' 
+      cursor: 'pointer', marginTop: '30px', boxShadow: '0 8px 20px rgba(233, 30, 99, 0.2)',
+      transition: '0.3s'
     },
     summaryLabel: { fontWeight: 'bold', color: '#9b59b6', marginTop: '15px', fontSize: '18px' }
   };
@@ -103,18 +129,20 @@ function Profile() {
   return (
     <div style={styles.pageWrapper}>
       <style>
-        {` @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } `}
+        {` 
+          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } 
+          input:focus { border-color: #9b59b6 !important; }
+          .main-card:hover { transform: translateY(-5px); }
+        `}
       </style>
 
-      {/* LOADING SCREEN WITH LOGO */}
       {isLoading && (
         <div style={styles.loadingOverlay}>
-          <img src="/img1.png" style={styles.spinningLogo} alt="loading" />
+          <img src={profileImg} style={styles.spinningLogo} alt="loading" />
           <div style={styles.loadingText}>Updating your Path...</div>
         </div>
       )}
 
-      {/* FLORAL BACKGROUND */}
       <div style={styles.flowerLayer}>
         {Array.from({ length: 30 }).map((_, i) => (
           <span key={i} style={styles.individualFlower(i * 45, (i % 3 === 0 ? '60px' : '30px'))}>
@@ -123,8 +151,12 @@ function Profile() {
         ))}
       </div>
 
-      <div style={styles.mainContainer}>
-        <img src="/img1.png" alt="Logo" style={styles.logoImg} />
+      <div style={styles.mainContainer} className="main-card">
+        <div style={styles.logoContainer} onClick={() => document.getElementById('fileInput').click()}>
+          <img src={profileImg} alt="Logo" style={styles.logoImg} />
+          <div style={styles.uploadOverlay}>📸</div>
+          <input id="fileInput" type="file" hidden onChange={handleImgChange} accept="image/*" />
+        </div>
         
         {isSaved ? (
           <div style={{width: '100%', textAlign: 'center'}}>
@@ -137,7 +169,14 @@ function Profile() {
               <p style={styles.summaryLabel}>Knowledge Areas</p>
               <div style={styles.chipContainer}>
                 {formData.selectedCategories.map(c => <span key={c} style={styles.chip(true)}>{c}</span>)}
+                {customTags.map((tag, i) => <span key={i} style={{...styles.chip(true), background: '#6d5c7e'}}>{tag}</span>)}
               </div>
+              {formData.customSkill && (
+                <>
+                  <p style={styles.summaryLabel}>Links</p>
+                  <p>{formData.customSkill}</p>
+                </>
+              )}
             </div>
             <button style={styles.mainButton} onClick={() => setIsSaved(false)}>Edit Profile</button>
           </div>
@@ -145,7 +184,7 @@ function Profile() {
           <form style={{ width: '100%' }} onSubmit={handleSave}>
             <h1 style={{textAlign: 'center', color: '#6d5c7e', marginBottom: '30px'}}>Your BridgePath Profile</h1>
             
-            <h3 style={styles.sectionTitle}>Identification</h3>
+            <h3 style={styles.sectionTitle}>Basic Information</h3>
             <div style={{display: 'flex', gap: '15px'}}>
               <input style={styles.input} placeholder="First Name" value={formData.firstName} onChange={(e) => setFormData({...formData, firstName: e.target.value})} required />
               <input style={styles.input} placeholder="Last Name" value={formData.lastName} onChange={(e) => setFormData({...formData, lastName: e.target.value})} required />
@@ -160,7 +199,7 @@ function Profile() {
               <option value="Senior">Senior / Retired Specialist</option>
             </select>
 
-            <h3 style={styles.sectionTitle}>Expertise</h3>
+            <h3 style={styles.sectionTitle}>Area of Expertise</h3>
             <div style={styles.chipContainer}>
               {categories.map(cat => (
                 <button type="button" key={cat} style={styles.chip(formData.selectedCategories.includes(cat))} onClick={() => toggleCategory(cat)}>
@@ -171,10 +210,23 @@ function Profile() {
 
             <input style={styles.input} placeholder="Specifically, what can you teach?" value={formData.specificSkills} onChange={(e) => setFormData({...formData, specificSkills: e.target.value})} />
             
-            <h3 style={styles.sectionTitle}>About You</h3>
-            <textarea style={{...styles.input, height: '100px', resize: 'none'}} placeholder="A brief professional bio..." value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} />
+            <h3 style={styles.sectionTitle}>Socials/Profile URL</h3>
+            <textarea 
+              style={{...styles.input, height: '100px', resize: 'none'}} 
+              placeholder="LinkedIn, Twitter, etc." 
+              value={formData.customSkill} // FIXED: Used customSkill instead of description
+              onChange={(e) => setFormData({...formData, customSkill: e.target.value})} 
+            />
+            
+            <h3 style={styles.sectionTitle}>More About You!</h3>
+            <textarea 
+              style={{...styles.input, height: '100px', resize: 'none'}} 
+              placeholder="A brief professional bio..." 
+              value={formData.description} 
+              onChange={(e) => setFormData({...formData, description: e.target.value})} 
+            />
 
-            <button type="submit" style={styles.mainButton}>Save My Profile ✨</button>
+            <button type="submit" style={styles.mainButton} className="save-btn">Save My Profile ✨</button>
           </form>
         )}
       </div>

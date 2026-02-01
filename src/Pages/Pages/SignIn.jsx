@@ -155,6 +155,8 @@ function SignIn() {
           <br />
           <p style={styles.missionTitle}>🌟 Swap Skills, Unlock Potential!</p>
           <p style={styles.missionDesc}>Trade what you know for what you want to learn. Coding to cooking! 🍳💻</p>
+          <p style={styles.missionTitle}>🤝 One Community, Infinite Skills!</p>
+          <p style={styles.missionDesc}>Your hobby is someone else's dream skill. Connect, teach, and grow together! 🌱✨</p>
         </div>
 
         {/* RIGHT SIDE: LOGIN */}
