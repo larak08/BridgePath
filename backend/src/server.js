@@ -24,7 +24,31 @@ const MENTOR_LADDER = {
   "Professional": "Professional", // Professionals can mentor each other
   "Senior": "Professional"
 };
+const handleSearch = async () => {
+  setIsLoading(true);
+  
+  // 1. Get the target age group from the ladder
+  const targetAgeGroup = MENTOR_LADDER[userProfile.age_group];
 
+  // 2. Fetch mentors
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('age_group', targetAgeGroup) // This ensures Child only sees HS Student
+    .neq('user_id', userProfile.user_id); // Don't find yourself
+
+  // 3. Extra Safety Check: Prevent older groups from seeing younger groups
+  // Even if the DB query is correct, this prevents logic errors
+  const filteredData = data.filter(mentor => {
+    if (userProfile.age_group === 'HS Student' && mentor.age_group === 'Child') {
+      return false; // HS Students cannot see Children
+    }
+    return true;
+  });
+
+  setMentors(filteredData);
+  setIsLoading(false);
+};
 // 2. Create the search endpoint
 // server.js
 

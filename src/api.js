@@ -73,7 +73,18 @@ export const createMentorshipRequest = async (mentorId, skill) => {
     return { success: false, error: error.message };
   }
 };
+export const respondToRequest = async (requestId, newStatus) => {
+  const { data, error } = await supabase
+    .from('requests')
+    .update({ status: newStatus })
+    .eq('id', requestId);
 
+  if (error) {
+    console.error("Update error:", error);
+    return false;
+  }
+  return true;
+};
 /**
  * Fetch all requests where the current user is the student
  * Joins with the 'profiles' table to get the mentor's name
