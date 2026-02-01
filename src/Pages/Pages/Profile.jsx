@@ -25,8 +25,6 @@ function Profile() {
     "Trades & Finances", "Health & Wellness", "Humanities & Languages",
     "Culinary & Hospitality", "Realty & Planning", "Legal & Advocacy", "Lifestyle & Hobbies"
   ];
-
-<<<<<<< HEAD
   const addTag = (e) => {
     if (e.key === 'Enter' && tagInput.trim() !== "") {
       e.preventDefault();
@@ -43,11 +41,11 @@ function Profile() {
 
   const handleSave = (e) => {
     e.preventDefault();
-=======
+
   // --- 1. LOAD PROFILE DATA ON MOUNT ---
  useEffect(() => {
   const loadProfile = async () => {
->>>>>>> 5695eb47a606b42807af18d4544b594f9f206b8a
+
     setIsLoading(true);
     try {
       const data = await fetchProfile(); 
