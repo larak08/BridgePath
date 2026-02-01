@@ -1,54 +1,57 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../supabaseClient'; // 👈 Import your supabase client
 
 function SignIn() {
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  
-  // Add state for the input values
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [error, setError] = useState('');
 
   const handleAction = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
 
     try {
-      if (isLogin) {
-        // --- LOG IN LOGIC ---
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: email,
-          password: password,
-        });
+      const endpoint = isLogin ? '/api/signin' : '/api/signup';
+      const body = isLogin ? { email, password } : { email, password };
+      const response = await fetch(`http://localhost:5000${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
 
-        if (error) throw error;
-        
-        // If login is successful, go to Profile to see/edit data
-        navigate('/profile'); 
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error);
 
+      // Store token
+      localStorage.setItem('token', data.session.access_token);
+
+      if (!isLogin) {
+        // After signup, go to onboarding
+        navigate('/onboarding');
       } else {
-        // --- SIGN UP LOGIC ---
-        const { data, error } = await supabase.auth.signUp({
-          email: email,
-          password: password,
+        // After signin, check if profile exists
+        const profileRes = await fetch('http://localhost:5000/api/profile', {
+          headers: { Authorization: `Bearer ${data.session.access_token}` },
         });
-
-        if (error) throw error;
-        
-        alert("Check your email for the confirmation link!");
-        // Usually, after signup, we send them to the profile/onboarding
-        navigate('/profile');
+        const profileData = await profileRes.json();
+        if (profileData.profile) {
+          navigate('/dashboard');
+        } else {
+          navigate('/onboarding');
+        }
       }
-    } catch (error) {
-      alert(error.message);
+    } catch (err) {
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ... (Keep all your styles exactly as they are) ...
   const styles = {
     loadingOverlay: {
       position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
@@ -58,10 +61,11 @@ function SignIn() {
     },
     spinningFlower: { fontSize: '80px', animation: 'spin 2s linear infinite', marginBottom: '20px' },
     loadingText: { fontSize: '24px', fontWeight: 'bold', color: '#9b59b6', letterSpacing: '1px' },
+
     pageWrapper: {
       minHeight: '100vh', width: '100vw', display: 'flex', justifyContent: 'center',
       alignItems: 'center', padding: '20px', 
-      fontFamily: "'Quicksand', sans-serif",
+      fontFamily: "'Quicksand', sans-serif", // <--- FONT FAMILY SET HERE
       background: 'linear-gradient(135deg, #e0d7ff 0%, #fdeff4 100%)', margin: 0,
       position: 'relative', overflow: 'hidden'
     },
@@ -90,19 +94,27 @@ function SignIn() {
       display: 'flex', flexDirection: 'column', justifyContent: 'center', 
       alignItems: 'center', borderLeft: '1px solid #f5f5f5' 
     },
+    
+    // --- LOGO STYLE ---
     logoImg: {
-      width: '200px', height: '200px', borderRadius: '50%',
-      marginBottom: '15px', boxShadow: '0 12px 24px rgba(155, 89, 182, 0.25)',
-      objectFit: 'cover', border: '4px solid white'
+      width: '200px',
+      height: '200px',
+      borderRadius: '50%',
+      marginBottom: '15px',
+      boxShadow: '0 12px 24px rgba(155, 89, 182, 0.25)',
+      objectFit: 'cover',
+      border: '4px solid white' // Adds a clean border around your logo
     },
+    
     title: { fontSize: '42px', color: '#6d5c7e', fontWeight: '800', marginBottom: '5px' },
     aboutHeading: { fontSize: '40px', marginBottom: '35px', fontWeight: '900', color: '#000' },
+    missionItem: { marginBottom: '25px' },
     missionTitle: { fontSize: '22px', fontWeight: 'bold', margin: '0 0 5px 0', color: '#000' },
     missionDesc: { fontSize: '17px', margin: 0, color: '#333', lineHeight: '1.6' },
     input: { 
       width: '100%', padding: '16px', margin: '10px 0', borderRadius: '15px', border: '2px solid #eee', 
       boxSizing: 'border-box', fontSize: '18px', outline: 'none', 
-      fontFamily: "'Quicksand', sans-serif"
+      fontFamily: "'Quicksand', sans-serif" // <--- FONT FAMILY SET HERE
     },
     mainButton: { width: '100%', padding: '16px', background: 'linear-gradient(to right, #9b59b6, #e91e63)', color: 'white', border: 'none', borderRadius: '30px', fontSize: '20px', fontWeight: 'bold', cursor: 'pointer', marginTop: '15px', boxShadow: '0 8px 20px rgba(233, 30, 99, 0.2)' },
     toggleText: { marginTop: '20px', color: '#9b59b6', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px' }
@@ -116,24 +128,52 @@ function SignIn() {
         {` @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } `}
       </style>
 
-      {/* LOADING SCREEN */}
-      {isLoading && (
-        <div style={styles.loadingOverlay}>
-          <img 
-            src="/img1.png" 
-            alt="BridgePath Logo"
-            style={{
-              width: '120px', height: '120px', borderRadius: '50%',
-              objectFit: 'cover', animation: 'spin 2.5s linear infinite',
-              marginBottom: '25px', border: '4px solid white',
-              boxShadow: '0 15px 30px rgba(155, 89, 182, 0.2)'
-            }}
-          />
-          <div style={{ fontSize: '22px', fontWeight: '800', color: '#9b59b6' }}>
-            {isLogin ? "Gathering your path..." : "Planting your BridgePath..."}
-          </div>
-        </div>
-      )}
+    {/* LOADING SCREEN */}
+{isLoading && (
+  <div style={{
+    position: 'fixed', 
+    top: 0, 
+    left: 0, 
+    width: '100vw', 
+    height: '100vh',
+    background: 'rgba(255, 255, 255, 0.95)', 
+    backdropFilter: 'blur(10px)',
+    display: 'flex', 
+    flexDirection: 'column', 
+    justifyContent: 'center',
+    alignItems: 'center', 
+    zIndex: 10000, 
+    fontFamily: "'Quicksand', sans-serif",
+  }}>
+    <style>
+      {` @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } `}
+    </style>
+    
+    <img 
+      src="/img1.png" 
+      alt="BridgePath Logo"
+      style={{
+        width: '120px',        // Size of the circle
+        height: '120px',
+        borderRadius: '50%',   // Makes it a circle
+        objectFit: 'cover',    // CROPS the image to fill the circle perfectly
+        animation: 'spin 2.5s linear infinite',
+        marginBottom: '25px',
+        border: '4px solid white',
+        boxShadow: '0 15px 30px rgba(155, 89, 182, 0.2)'
+      }}
+    />
+    
+    <div style={{ 
+      fontSize: '22px', 
+      fontWeight: '800', 
+      color: '#9b59b6', 
+      letterSpacing: '0.5px' 
+    }}>
+      Planting your BridgePath...
+    </div>
+  </div>
+)}
 
       {/* FLORAL BACKGROUND */}
       <div style={styles.flowerLayer}>
@@ -145,6 +185,7 @@ function SignIn() {
       </div>
 
       <div style={styles.mainContainer}>
+        {/* LEFT SIDE: ABOUT */}
         <div style={styles.infoSection}>
           <h2 style={styles.aboutHeading}>What we are about</h2>
           <p style={styles.missionTitle}>🎯 Learn, Share, Repeat!</p>
@@ -152,34 +193,27 @@ function SignIn() {
           <br />
           <p style={styles.missionTitle}>🌟 Swap Skills, Unlock Potential!</p>
           <p style={styles.missionDesc}>Trade what you know for what you want to learn. Coding to cooking! 🍳💻</p>
-          <p style={styles.missionTitle}>🤝 One Community, Infinite Skills!</p>
-          <p style={styles.missionDesc}>Your hobby is someone else's dream skill. Connect, teach, and grow together! 🌱✨</p>
         </div>
 
+        {/* RIGHT SIDE: LOGIN */}
         <div style={styles.loginSection}>
-          <img src="/img1.png" alt="BridgePath Logo" style={styles.logoImg} />
+          {/* LOGO IMAGE - POINTING TO PUBLIC FOLDER */}
+          <img 
+            src="/img1.png" 
+            alt="BridgePath Logo" 
+            style={styles.logoImg}
+            onError={(e) => { e.target.src = "https://via.placeholder.com/200?text=Move+img1.png+to+Public+Folder"; }}
+          />
+          
           <h1 style={styles.title}>BridgePath</h1>
           <h3 style={{ color: '#9b59b6', marginBottom: '20px', fontWeight: '700', fontSize: '20px' }}>
             {isLogin ? "Welcome Back!" : "Join the Community"}
           </h3>
           
           <form style={{ width: '100%', maxWidth: '350px' }} onSubmit={handleAction}>
-            <input 
-              type="email" 
-              placeholder="Email Address" 
-              style={styles.input} 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required 
-            />
-            <input 
-              type="password" 
-              placeholder="Password" 
-              style={styles.input} 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required 
-            />
+            {!isLogin && <input type="text" placeholder="Full Name" style={styles.input} value={fullName} onChange={(e) => setFullName(e.target.value)} required />}
+            <input type="email" placeholder="Email Address" style={styles.input} value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <input type="password" placeholder="Password" style={styles.input} value={password} onChange={(e) => setPassword(e.target.value)} required />
             <button type="submit" style={styles.mainButton}>
               {isLogin ? "Login 🚀" : "Sign Up ✨"}
             </button>
@@ -188,6 +222,7 @@ function SignIn() {
           <div style={styles.toggleText} onClick={() => setIsLogin(!isLogin)}>
             {isLogin ? "New here? Create an account!" : "Already have an account? Log in!"}
           </div>
+          {error && <p style={{ color: 'red' }}>{error}</p>}
         </div>
       </div>
     </div>
