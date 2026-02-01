@@ -132,7 +132,7 @@ function Profile() {
       border: '3px solid #9b59b6'
     },
     loadingText: { fontSize: '24px', fontWeight: 'bold', color: '#9b59b6' },
- HEAD
+ HEAD,
 
 
     mainContainer: {
