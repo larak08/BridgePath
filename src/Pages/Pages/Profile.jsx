@@ -134,7 +134,7 @@ function Profile() {
     loadingText: { fontSize: '24px', fontWeight: 'bold', color: '#9b59b6' },
  HEAD
 
->>>>>>> 5695eb47a606b42807af18d4544b594f9f206b8a
+
     mainContainer: {
       background: 'white', borderRadius: '40px', maxWidth: '800px', width: '100%',
       padding: '50px', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.1)',
