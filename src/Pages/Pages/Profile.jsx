@@ -11,6 +11,7 @@ function Profile() {
     description: '',
     selectedCategories: [],
     specificSkills: '',
+    profilePic: null 
   });
 
   const categories = [
@@ -30,9 +31,10 @@ function Profile() {
             firstName: data.first_name || '',
             lastName: data.last_name || '',
             ageGroup: data.age_group || '',
-            description: data.bio || '',                 
+            description: data.bio || '',                
             selectedCategories: data.knowledge_areas || [], 
             specificSkills: data.specific_expertise || '', 
+            profilePic: data.profile_pic || null 
           });
           setIsSaved(true); 
         }
@@ -56,19 +58,50 @@ function Profile() {
       age_group: formData.ageGroup,
       categories: formData.selectedCategories,
       specific_skills: formData.specificSkills, 
-      description: formData.description
+      description: formData.description,
+      profile_pic: formData.profilePic 
     };
 
     try {
       const success = await updateProfile(profileUpdates);
       if (success) {
         setIsSaved(true);
+      } else {
+        alert("Server rejected the update. The image might still be too large.");
       }
     } catch (error) {
       console.error("Save failed:", error);
       alert("Failed to save profile. Please check your connection.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // --- 3. COMPRESSED IMAGE HANDLER ---
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const img = new Image();
+        img.src = reader.result;
+        img.onload = () => {
+          // Create canvas to resize image (Prevents "Payload Too Large" errors)
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 400; 
+          const scaleSize = MAX_WIDTH / img.width;
+          canvas.width = MAX_WIDTH;
+          canvas.height = img.height * scaleSize;
+
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          // Export as compressed string
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7); 
+          setFormData({ ...formData, profilePic: compressedDataUrl });
+        };
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -113,6 +146,13 @@ function Profile() {
       padding: '50px', boxShadow: '0 20px 50px rgba(0, 0, 0, 0.1)', boxSizing: 'border-box',
       position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center'
     },
+    profileImageContainer: {
+      position: 'relative', marginBottom: '20px', textAlign: 'center'
+    },
+    profileCircle: {
+      width: '120px', height: '120px', borderRadius: '50%', objectFit: 'cover',
+      border: '4px solid #f3f0ff', marginBottom: '10px', backgroundColor: '#eee'
+    },
     input: { 
       width: '100%', padding: '16px', margin: '10px 0', borderRadius: '15px', border: '2px solid #eee', 
       boxSizing: 'border-box', fontSize: '16px', outline: 'none', fontFamily: 'inherit'
@@ -134,7 +174,6 @@ function Profile() {
 
   return (
     <div style={styles.pageWrapper}>
-      {/* Dynamic Keyframes for the spinner */}
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
@@ -157,6 +196,11 @@ function Profile() {
       <div style={styles.mainContainer}>
         {isSaved ? (
           <div style={{width: '100%', textAlign: 'center'}}>
+            <img 
+               src={formData.profilePic || "/default-avatar.png"} 
+               style={{...styles.profileCircle, width: '150px', height: '150px', border: '5px solid #9b59b6'}} 
+               alt="profile" 
+            />
             <h1 style={{color: '#6d5c7e'}}>Profile Synced! ✨</h1>
             <div style={{textAlign: 'left', background: '#fcfaff', padding: '20px', borderRadius: '15px'}}>
               <p><strong>Name:</strong> {formData.firstName} {formData.lastName}</p>
@@ -170,6 +214,21 @@ function Profile() {
           <form style={{ width: '100%' }} onSubmit={handleSave}>
             <h2 style={{textAlign: 'center', color: '#6d5c7e'}}>Your BridgePath Profile</h2>
             
+            <div style={styles.profileImageContainer}>
+              <img 
+                src={formData.profilePic || "https://via.placeholder.com/120"} 
+                style={styles.profileCircle} 
+                alt="preview" 
+              />
+              <br />
+              <label style={{
+                color: '#9b59b6', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', textDecoration: 'underline'
+              }}>
+                Change Photo
+                <input type="file" accept="image/*" onChange={handleImageChange} style={{display: 'none'}} />
+              </label>
+            </div>
+
             <div style={{display: 'flex', gap: '10px'}}>
               <input style={styles.input} placeholder="First Name" value={formData.firstName} onChange={(e) => setFormData({...formData, firstName: e.target.value})} required />
               <input style={styles.input} placeholder="Last Name" value={formData.lastName} onChange={(e) => setFormData({...formData, lastName: e.target.value})} required />
