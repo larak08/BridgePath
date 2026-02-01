@@ -78,8 +78,8 @@ function MainDashboard() {
         {/* UPDATES SECTION */}
         <div style={styles.sectionWrapper}>
           <div style={styles.sectionHeader} onClick={() => toggleSection('updates')}>
-            <span style={styles.sectionTitle}>System Updates</span>
-            <span>{openSection === 'updates' ? '▲' : '▼'}</span>
+            <span style={styles.sectionTitle}>My Mentorship Request</span>
+            <span style={styles.toggleIcon(openSection === 'updates')}>▼</span>
           </div>
           <div style={styles.contentArea(openSection === 'updates')}>
             {requests.some(r => r.status === 'pending') 

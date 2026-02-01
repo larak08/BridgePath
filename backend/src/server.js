@@ -6,7 +6,9 @@ import { supabaseAsUser, getSupabase } from "./supabase.js"; // Ensure getSupaba
 
 const app = express(); // 👈 This must happen BEFORE any app.get() calls
 
-app.use(cors({ origin: "http://localhost:5173" }));
+app.use(cors({ 
+  origin: ["http://localhost:5173", "http://localhost:5174"] 
+}));
 app.use(express.json());
 
 // --- YOUR TEST ROUTES GO HERE ---
