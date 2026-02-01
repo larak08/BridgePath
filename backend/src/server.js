@@ -13,6 +13,39 @@ app.use(express.json());
  app.get("/api/me", requireAuth, (req, res) => {
   res.json({ id: req.user.id, email: req.user.email });
 });
+// Add this mapping at the top of server.js
+// 1. Define the ladder logic
+const MENTOR_LADDER = {
+  "Child": "HS Student",
+  "HS Student": "Young Adult",
+  "Young Adult": "Professional",
+  "Professional": "Professional", // Professionals can mentor each other
+  "Senior": "Professional"
+};
+
+// 2. Create the search endpoint
+// server.js
+
+app.get("/api/match-experts", requireAuth, async (req, res) => {
+  const { interest, user_age_group } = req.query;
+  const sb = getSupabase();
+  const targetRole = MENTOR_LADDER[user_age_group] || "Professional";
+
+  // --- PASTE THE UPDATED CODE HERE ---
+  const { data, error } = await sb
+    .from("profiles")
+    .select("*")
+    // This part makes the search much more flexible
+    .ilike("age_group", `%${targetRole}%`) 
+    .ilike("specific_expertise", `%${interest}%`)
+    .neq("user_id", req.user.id);
+  // --- END OF UPDATED CODE ---
+
+  if (error) return res.status(400).json({ error: error.message });
+
+  console.log(`Found ${data.length} matches for ${targetRole}`);
+  res.json({ matches: data });
+});
 app.get("/api/health-db", async (req, res) => {
   try {
     const sb = getSupabase();
@@ -86,6 +119,36 @@ app.get("/api/profile", requireAuth, async (req, res) => {
 
   res.json({ profile: data });
 });
+
+// Matches route// server.js
+app.get("/api/match-experts", requireAuth, async (req, res) => {
+  const { interest, user_age_group } = req.query;
+  const sb = getSupabase();
+  const targetRole = MENTOR_LADDER[user_age_group] || "Professional";
+
+  // 1. Get EVERYONE in that age group first
+  const { data: allInGroup } = await sb
+    .from("profiles")
+    .select("*")
+    .eq("age_group", targetRole);
+
+  console.log(`--- DEBUG SEARCH ---`);
+  console.log(`Looking for: ${targetRole} + ${interest}`);
+  console.log(`People found in this group:`, allInGroup?.map(p => ({
+    name: p.first_name,
+    expertise: p.specific_expertise
+  })));
+
+  // 2. Now do the real filtered query
+  const { data, error } = await sb
+    .from("profiles")
+    .select("*")
+    .ilike("age_group", targetRole) // 👈 Use ilike here too!
+  .ilike("specific_expertise", `%${interest}%`)
+  .neq("user_id", req.user.id);
+  res.json({ matches: data });
+});
+
 app.get("/api/test-save", async (req, res) => {
   const sb = getSupabase();
   const { data, error } = await sb
